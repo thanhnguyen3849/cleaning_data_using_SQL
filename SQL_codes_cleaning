@@ -1,0 +1,52 @@
+# CODES CLEANING DATA IN SQL
+(NOTE: The format for coding in SQL is instrinsic to its own environment, which is the MS SSMS)
+
+-- Preview the data
+Select *
+From p_project.dbo.NashvilleHousing
+
+-- 1. Standardize Data Format 
+
+Select SaleDateConverted --,CONVERT (Date, SaleDate)
+From p_project.dbo.NashvilleHousing
+
+Alter table NashvilleHousing
+Add SaleDateConverted Date;
+
+Update NashvilleHousing
+Set SaleDateConverted = CONVERT (Date, SaleDate)
+
+-- 2. Populate Property Address Data
+Select *
+From p_project.dbo.NashvilleHousing
+Where PropertyAddress is null 
+
+-- A closer look shows that some of the PropertyAddress are null
+-- Maybe a missing values, or need more investigation
+-- This method of investigation is meant to trace the property address that is null because it has been used before somewhere
+
+Select a.ParcelID, a.PropertyAddress, b.ParcelID, b.PropertyAddress
+From p_project.dbo.NashvilleHousing a
+Join p_project.dbo.NashvilleHousing b
+	on a.ParcelID = b.ParcelID
+	and a.[UniqueID] <> b.[UniqueID]
+Where a.PropertyAddress is null
+
+-- We have the address for the null PropertyAddress but we did not populate it
+Select a1.ParcelID, a1.PropertyAddress, b1.ParcelID, b1.PropertyAddress--, ISNULL (a1.PropertyAddress, b1.PropertyAddress)
+From p_project.dbo.NashvilleHousing a1
+Join p_project.dbo.NashvilleHousing b1
+	on a1.ParcelID = b1.ParcelID
+	and a1.[UniqueID] <> b1.[UniqueID]
+Where a1.PropertyAddress is null
+
+UPDATE a1
+SET PropertyAddress = ISNULL (a1.PropertyAddress, b1.PropertyAddress)
+From p_project.dbo.NashvilleHousing a1
+Join p_project.dbo.NashvilleHousing b1
+	on a1.ParcelID = b1.ParcelID
+	and a1.[UniqueID] <> b1.[UniqueID]
+Where a1.PropertyAddress is null
+
+
+
