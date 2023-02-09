@@ -1,7 +1,7 @@
 # CODES CLEANING DATA IN SQL
 (NOTE: The format for coding in SQL is instrinsic to its own environment, which is the MS SSMS)
 
--- Preview the data
+-- Preview the data 
 Select *
 From p_project.dbo.NashvilleHousing
 
@@ -48,5 +48,63 @@ Join p_project.dbo.NashvilleHousing b1
 	and a1.[UniqueID] <> b1.[UniqueID]
 Where a1.PropertyAddress is null
 
+-- 3. Breaking out Address into individual columns (Address, City, State)
+-- 3.1. Select the address inluding the number and street name as "Address"
+Select SUBSTRING(PropertyAddress, 1, CHARINDEX(',', PropertyAddress)) as Address 
+From p_project.dbo.NashvilleHousing
+-- But this code is going to include the ',' comma in our Address, so we have to fix it a little bit
+
+Select SUBSTRING(PropertyAddress, 1, CHARINDEX(',', PropertyAddress) -1) as Address 
+From p_project.dbo.NashvilleHousing
+-- For the code above, as we add a minus 1 (-1) in our third argument in the SUBSTRING function, the CHARINDEX will include everything
+-- Until the ',' commna then minus 1, which is what we want
+
+-- 3.2. Select the name for "City"
+Select SUBSTRING(PropertyAddress, 1, CHARINDEX(',', PropertyAddress) -1) as Address,
+	SUBSTRING(PropertyAddress, CHARINDEX(',', PropertyAddress) +1, LEN(PropertyAddress)) as City 
+From p_project.dbo.NashvilleHousing
+
+--3.3. Create new columns to add these new information to the table
+
+ALTER TABLE NashvilleHousing
+Add PropertyAddressNew Nvarchar(255);
+ALTER TABLE NashvilleHousing
+Add PropertyCityNew Nvarchar(255);
+
+UPDATE NashvilleHousing
+Set PropertyAddressNew = SUBSTRING(PropertyAddress, 1, CHARINDEX(',', PropertyAddress) -1)
+
+UPDATE NashvilleHousing
+Set PropertyCityNew = SUBSTRING(PropertyAddress, CHARINDEX(',', PropertyAddress) +1, LEN(PropertyAddress))
+
+Select *
+From p_project.dbo.NashvilleHousing
+
+-- 3.4. Now we do the "OwnerAddress" using other functions
+-- PARSENAME is kinda doing things backwards
+-- But before PARSENAME can work, we have to change "," into "." 
+Select
+PARSENAME(REPLACE(OwnerAddress, ',', '.'), 3),
+PARSENAME(REPLACE(OwnerAddress, ',', '.'), 2),
+PARSENAME(REPLACE(OwnerAddress, ',', '.'), 1)
+From p_project.dbo.NashvilleHousing
+
+-- 3.5. Now we add them into new columns into the table
+ALTER TABLE NashvilleHousing
+Add OwnerAddressNew Nvarchar(255);
+ALTER TABLE NashvilleHousing
+Add OwnerCityNew Nvarchar(255);
+ALTER TABLE NashvilleHousing
+Add OwnerStateNew Nvarchar(255);
+
+UPDATE NashvilleHousing
+Set OwnerAddressNew = PARSENAME(REPLACE(OwnerAddress, ',', '.'), 3)
+UPDATE NashvilleHousing
+Set OwnerCityNew = PARSENAME(REPLACE(OwnerAddress, ',', '.'), 2)
+UPDATE NashvilleHousing
+Set OwnerStateNew = PARSENAME(REPLACE(OwnerAddress, ',', '.'), 1)
+
+Select *
+From p_project.dbo.NashvilleHousing
 
 
