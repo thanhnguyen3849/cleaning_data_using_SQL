@@ -107,4 +107,84 @@ Set OwnerStateNew = PARSENAME(REPLACE(OwnerAddress, ',', '.'), 1)
 Select *
 From p_project.dbo.NashvilleHousing
 
+-- 4. The "Sold as Vacant" field
+-- 4.1. Examine the types of variables in the field 
+
+Select distinct (SoldAsVacant), count(SoldAsVacant)
+From p_project.dbo.NashvilleHousing
+Group by SoldAsVacant
+Order by 2
+
+-- We see that there are 4 types of variables: "N", "Y", and "No", "Yes"
+-- We need to standardize these variables
+
+-- 4.2. Mutate/Recode variables in SQL
+Select SoldAsVacant, 
+	CASE	When SoldAsVacant = 'Y' then 'Yes'
+			When SoldAsVacant = 'N' then 'No'
+	ELSE	SoldAsVacant
+	END
+From p_project.dbo.NashvilleHousing
+
+-- 4.3. Now we update the table
+UPDATE NashvilleHousing
+Set SoldAsVacant =	CASE	When SoldAsVacant = 'Y' then 'Yes'
+							When SoldAsVacant = 'N' then 'No'
+					ELSE	SoldAsVacant
+					END
+
+-- 5. Remove duplicated rows
+-- It is NOT standard practice to DELETE data in our sets
+
+-- 5.1. First identify the duplicates
+WITH RowNumCTE as(
+Select *,
+	ROW_NUMBER() OVER (
+						PARTITION BY	ParcelID,
+										PropertyAddress,
+										SalePrice,
+										SaleDate,
+										LegalReference
+						ORDER BY	UniqueID
+						) row_num
+From p_project.dbo.NashvilleHousing
+)
+Select *
+From RowNumCTE
+Where row_num > 1
+Order by PropertyAddress
+-- The duplicates are the ones identified as row_num > 1 
+
+-- 5.2. Delete the duplicates
+WITH RowNumCTE as(
+Select *, ROW_NUMBER() OVER (
+							PARTITION BY	ParcelID,
+											PropertyAddress,
+											SalePrice,
+											SaleDate,
+											LegalReference
+							ORDER BY	UniqueID
+							) row_num
+From p_project.dbo.NashvilleHousing
+)
+DELETE 
+From RowNumCTE
+Where row_num > 1
+
+-- 6. Delete unused columns
+-- It is NOT standard practice to do so at NORMAL workplace
+
+ALTER TABLE p_project.dbo.NashvilleHousing
+DROP COLUMN OwnerAddress, TaxDistrict, PropertyAddress, SaleDate
+
+Select *
+From p_project.dbo.NashvilleHousing
+
+-- SUMMARY
+-- Standardize the data
+-- Identify missing values and change them accordingly
+-- Modify the data 
+-- Remove duplicates
+-- Remove unused data
+
 
